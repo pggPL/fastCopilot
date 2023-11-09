@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>RNN based copilot – about</title>
+<style>
+  /* Stylizacja zachowana z poprzedniej strony dla spójności */
+  .centered-header {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  .centered-header h2 {
+    display: inline-block;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 2em;
+    color: #333;
+    padding-bottom: 10px;
+    margin: 0;
+  }
+
+  .content {
+    max-width: 600px;
+    margin: 20px auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 1em;
+    line-height: 1.6;
+  }
+
+  .links a {
+    text-decoration: none;
+    color: #007BFF;
+    background-color: transparent;
+    margin: 0 10px;
+    padding: 5px 10px;
+    transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out;
+  }
+
+  .links a:hover, .links a:focus {
+    color: #0056b3;
+    background-color: #e7f5ff;
+    border-radius: 5px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+
+  table, th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+
+  th {
+    background-color: #f2f2f2;
+    color: #333;
+    font-weight: bold;
+  }
+
+  td {
+    color: #666;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  tr:hover {
+    background-color: #e8f4fd;
+  }
+
+  /* Dodatkowe style mogą być dodane w razie potrzeby */
+</style>
+</head>
+<body>
+
+<div class="centered-header">
+    <h2>About</h2>
+</div>
+
+<div class="content">
+  <p>
+    The copilot is based on <b>LSTM</b> neural network, which predicts the completion of the sentence based on the
+    previous words. Different models were trained on the different datasets.
+  </p>
+
+    <table>
+        <tr>
+            <th>Model name</th>
+            <th>Description</th>
+            <th>Dataset</th>
+        </tr>
+        <tr>
+            <td>Polish</td>
+            <td>2 layers, 256 units</td>
+            <td>0.35</td>
+    </table>
+
+    <p>
+        Author: Paweł Gadziński
+    </p>
+</div>
+
+<div class="links">
+    <a href="/">Home</a>
+</div>
+
+</body>
+</html>
