@@ -2,14 +2,11 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-int2char = dict(enumerate('abcdefghijklmnopqrstuvwxyz '))
-char2int = {ch: ii for ii, ch in int2char.items()}
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Define the model
 class CharRNN(nn.Module):
-    def __init__(self, tokens, n_hidden=256, n_layers=2, drop_prob=0.5, lr=0.001):
+    def __init__(self, tokens, int2char, char2int, n_hidden=128, n_layers=4, drop_prob=0.5, lr=0.001):
         super(CharRNN, self).__init__()
         self.drop_prob = drop_prob
         self.n_layers = n_layers
@@ -46,6 +43,7 @@ class CharRNN(nn.Module):
         hidden = (weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device),
                   weight.new(self.n_layers, batch_size, self.n_hidden).zero_().to(device))
         return hidden
+
 
 
 def one_hot_encode(arr, n_labels):
@@ -91,6 +89,8 @@ def sample(model, size, prime=' ', temperature=1.0):
     hidden = (model.init_hidden(1)[0].to(device), model.init_hidden(1)[1].to(device))
     for ch in prime:
         char, hidden = predict(model, ch, hidden, temperature=temperature)
+    if prime == '':
+        char, hidden = predict(model, ' ', hidden, temperature=temperature)
 
     chars.append(char)
 

@@ -52,8 +52,6 @@
       outline: none;
     }
 
-    .editable span.red { color: black; }
-    .editable span.blue { color: darkgray; }
 
     .styled-select {
       display: block;
@@ -133,21 +131,26 @@
     <h2>
         RNN based copilot
     </h2>
+
+    <h4>
+        due to very limited computational resources, the model is not very accurate.
+    </h4>
 </div>
 
 <div class="styled-select">
   <select>
-    <option value="model1">Model 1</option>
-    <option value="model2">Model 2</option>
-    <option value="model3">Model 3</option>
-    <option value="model4">Model 4</option>
+      {% for model in models %}
+          <option value="{{ model }}">{{ model }}</option>
+      {% endfor %}
   </select>
 </div>
 
-<div class="editable"  id="editable" contenteditable="true" oninput="predict()">
+<div class="editable"  id="editable" contenteditable="true" oninput="clearPrediction()">
   Start editing text,
   <span class="prediction" id="prediction"> click TAB to accept copilot proposition.</span>
 </div>
+
+<!--<span>caret position:</span> <span id="caret-position"></span>!-->
 
 <div class="links">
     <a href="about">About</a>
@@ -159,13 +162,17 @@
     let prediction_begin = '<span class="prediction" id="prediction">'
     let current_prediction = "";
 
+    let current_prediction_visible = true;
+    let clicked_last_time = false;
+
+
     function acceptPrediction() {
         // usuwamy wszystkie <span class="prediction"> z tekstu
+        let pos = getCaretPosition(editable)
         let text = editable.innerHTML.replace(/<span class="prediction" id="prediction">/g, '');
         text = text.replace(/<\/span>/g, '');
+        current_prediction_visible = false;
         editable.innerHTML = text;
-        console.log(text)
-        window.getSelection().collapse(editable, 1);
     }
 
     // After pressing TAB, accept prediction
@@ -177,25 +184,29 @@
             event.preventDefault();
             // accept the prediction
             acceptPrediction();
-            setCaretPosition(editable, currentPosition + current_prediction.length);
+            setCaretPosition(editable, Math.min(currentPosition + current_prediction.length, editable.innerHTML.length));
         }
     });
 
     function predict() {
 
-    let sel = window.getSelection();
+        if(clicked_last_time) {
+            clicked_last_time = false;
+            return
+        }
+        if(current_prediction_visible) {
+            return
+        }
+
         let cursorPosition = getCaretPosition(editable);
         let text = editable.innerHTML.replace(/<span class="prediction" id="prediction">.*<\/span>/g, '');  // We should use innerText to avoid sending HTML tags.
 
-        let range = sel.getRangeAt(0);
-        let textNode = range.endContainer;
-        let offset = range.endOffset;
         fetch('/predict', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ content: text })
+            body: JSON.stringify({ content: text, model: document.querySelector("select").value })
         })
         .then(response => response.json())
         .then(data => {
@@ -212,12 +223,7 @@
             editable.removeChild(oldPrediction);
         }
 
-
-        let isAtTextEnd = offset === textNode.length;
-
-        let lastchar = textNode.textContent[offset - 1]
-         if ((textNode.nodeType === Node.TEXT_NODE &&  (lastchar === ' ' || lastchar === " ") && offset > 0) || isAtTextEnd){
-             current_prediction = predictionText;
+        current_prediction = predictionText;
         // Wstawienie predykcji bezpośrednio po kursorze
         let sel = window.getSelection();
         if (sel.rangeCount > 0) {
@@ -231,14 +237,14 @@
             sel.removeAllRanges();
             sel.addRange(range);
         }
-
+        current_prediction_visible = true
 
         // Przywróć pozycję kursora
-        setCaretPosition(editable, cursorPosition);}
+        setCaretPosition(editable, cursorPosition);
 
         // Ustaw fokus z powrotem na element edytowalny
-        editable.focus();
-        })
+        editable.focus()}
+        )
         .catch(error => {
             console.error('Error:', error);
         });
@@ -246,19 +252,15 @@
     }
 function getCaretPosition(editableDiv) {
     let sel = window.getSelection();
-    console.log(sel)
-    console.log("aaa")
     if (sel.rangeCount > 0) {
         let range = sel.getRangeAt(0);
         let preCaretRange = range.cloneRange();
         preCaretRange.selectNodeContents(editableDiv);
         preCaretRange.setEnd(range.endContainer, range.endOffset);
 
-        console.log("Pozycja kursoraa: " + preCaretRange.toString().length)
         return preCaretRange.toString().length;
     }
     return 0;
-
 }
 
 function setCaretPosition(editableDiv, position) {
@@ -271,9 +273,9 @@ function setCaretPosition(editableDiv, position) {
     sel.removeAllRanges();
 
     while (child != null) {
-        let nextCharIndex = charIndex + (child.nodeType == 3 ? child.length : child.innerText.length);
+        let nextCharIndex = charIndex + (child.nodeType === 3 ? child.length : child.innerText.length);
         if (position <= nextCharIndex) {
-            if (child.nodeType == 3) { // Text node
+            if (child.nodeType === 3) { // Text node
                 range.setStart(child, position - charIndex);
                 range.collapse(true);
                 sel.addRange(range);
@@ -287,11 +289,18 @@ function setCaretPosition(editableDiv, position) {
             child = child.nextSibling;
         }
     }
+
+    if (child == null) {
+        range.setStart(editableDiv, editableDiv.childNodes.length);
+        range.collapse(true);
+        sel.addRange(range);
+    }
 }
 
 document.getElementById('editable').addEventListener('keydown', function(event) {
     if (event.key === 'Enter') {
         event.preventDefault(); // Zapobiegaj domyślnej akcji
+        clearPrediction()
         if (window.getSelection) {
             let selection = window.getSelection(),
                 range = selection.getRangeAt(0),
@@ -306,21 +315,32 @@ document.getElementById('editable').addEventListener('keydown', function(event) 
     }
 });
 
-    function clearPrediction() {
-  // Znajdź i usuń predykcję
-  let predictionElement = document.getElementById('prediction');
-  if (predictionElement) {
-    predictionElement.remove();
-  }
+function clearPrediction() {
+    clicked_last_time = true;
+    current_prediction_visible = false;
+    // Znajdź i usuń predykcję
+    let predictionElement = document.getElementById('prediction');
+    if (predictionElement) {
+        predictionElement.remove();
+    }
 }
 
 editable.addEventListener('click', clearPrediction);
-editable.addEventListener('keyup', (event) => {
+editable.addEventListener('keydown', (event) => {
   // Sprawdź, czy naciśnięty klawisz to klawisz sterujący karetką
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
     clearPrediction();
   }
 });
+
+// set timeout – every second predict
+setInterval(predict, 1000);
+
+// update caret position on evey 100ms
+/*setInterval(() => {
+    let cp = getCaretPosition(document.getElementById("editable"));
+    document.getElementById("caret-position").innerText = cp + "";
+}, 100);*/
 </script>
 
 
